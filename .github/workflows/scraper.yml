@@ -27,11 +27,17 @@ jobs:
         run: |
           wget -q -O google-chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
           sudo dpkg -i google-chrome.deb || sudo apt-get -f install -y
-          google-chrome --version
+          which google-chrome || which google-chrome-stable
+          google-chrome --version || google-chrome-stable --version
 
       - name: Install Chromedriver
         run: |
-          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+')
+          # Try both possible Chrome executable names and extract version
+          CHROME_VERSION=$(
+            (google-chrome --version 2>/dev/null || google-chrome-stable --version) \
+            | grep -oP '\d+\.\d+\.\d+'
+          )
+          echo "Detected Chrome version: $CHROME_VERSION"
           wget -q "https://storage.googleapis.com/chrome-for-testing-public/$CHROME_VERSION/linux64/chromedriver-linux64.zip"
           unzip chromedriver-linux64.zip
           mv chromedriver-linux64/chromedriver .
@@ -41,16 +47,4 @@ jobs:
         env:
           CHROMEDRIVER_PATH: ${{ github.workspace }}/chromedriver
         run: |
-          python scraper.py
-
-      - name: Upload CSV artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: allcorectpricees
-          path: allcorectpricees.csv
-
-      - name: Upload ZIP artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: allcorectpricees-zip
-          path: allcorectpricees.zip
+          python scraper
